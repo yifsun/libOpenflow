@@ -5,6 +5,8 @@ import (
 	"errors"
 	"net"
 
+	"k8s.io/klog/v2"
+
 	"antrea.io/libOpenflow/common"
 	"antrea.io/libOpenflow/util"
 )
@@ -118,6 +120,7 @@ func (p *Port) UnmarshalBinary(data []byte) (err error) {
 		}
 		err = prop.UnmarshalBinary(data[n:])
 		if err != nil {
+			klog.V(4).Infof("Failed to unmarshal Port's Properties: err = %v data = %v", err, data[n:])
 			return err
 		}
 		n += prop.Len()
@@ -508,6 +511,7 @@ func (p *PortMod) UnmarshalBinary(data []byte) (err error) {
 		}
 		err = prop.UnmarshalBinary(data[n:])
 		if err != nil {
+			klog.V(4).Infof("Failed to unmarshal PortMod's Properties: err = %v data = %v", err, data[n:])
 			return err
 		}
 		n += prop.Len()
@@ -761,7 +765,11 @@ func (s *PortStatus) UnmarshalBinary(data []byte) error {
 	n += len(s.pad)
 	s.Desc = *NewPort(0)
 
-	return s.Desc.UnmarshalBinary(data[n:])
+	err := s.Desc.UnmarshalBinary(data[n:])
+	if err != nil {
+		klog.V(4).Infof("Failed to unmarshal PortStatus's Desc: err = %v data = %v", err, data[n:])
+	}
+	return err
 }
 
 // ofp_port_reason

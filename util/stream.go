@@ -6,7 +6,7 @@ import (
 	"net"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
+	"k8s.io/klog/v2"
 )
 
 const numParserGoroutines = 25
@@ -42,7 +42,7 @@ func (w *streamWorker) parse(stopCh chan bool, parser Parser, inbound chan Messa
 			msg, err := parser.Parse(b.Bytes())
 			// Log all message parsing errors.
 			if err != nil {
-				log.Errorf(errMessage, b.Bytes(), err)
+				klog.Errorf(errMessage, b.Bytes(), err)
 			} else {
 				inbound <- msg
 			}
@@ -113,7 +113,7 @@ func (m *MessageStream) outbound() {
 	for {
 		select {
 		case <-m.Shutdown:
-			log.Infof("Closing OpenFlow message stream.")
+			klog.Infof("Closing OpenFlow message stream.")
 			m.conn.Close()
 			close(m.parserShutdown)
 			return
@@ -121,12 +121,12 @@ func (m *MessageStream) outbound() {
 			// Forward outbound messages to conn
 			data, _ := msg.MarshalBinary()
 			if _, err := m.conn.Write(data); err != nil {
-				log.Warnln("OutboundError:", err)
+				klog.Warningf("OutboundError:", err)
 				m.Error <- err
 				m.Shutdown <- true
 			}
 
-			log.Debugf("Sent(%d): %v", len(data), data)
+			klog.V(4).Infof("Sent(%d): %v", len(data), data)
 		}
 	}
 }
@@ -146,7 +146,7 @@ func (m *MessageStream) inbound() {
 			if strings.Contains(err.Error(), "use of closed network connection") {
 				return
 			}
-			log.Warnln("InboundError", err)
+			klog.Warningf("InboundError", err)
 			m.Error <- err
 			m.Shutdown <- true
 			return
@@ -182,7 +182,7 @@ func (m *MessageStream) inbound() {
 func (m *MessageStream) dispatchMessage(b *bytes.Buffer) {
 	msgBytes := b.Bytes()
 	if len(msgBytes) < 8 {
-		log.Error("buffer too small to parse OpenFlow messages")
+		klog.Error("buffer too small to parse OpenFlow messages")
 		return
 	}
 	xid := binary.BigEndian.Uint32(msgBytes[4:])

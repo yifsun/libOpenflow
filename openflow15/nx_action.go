@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net"
 
-	log "github.com/sirupsen/logrus"
+	"k8s.io/klog/v2"
 )
 
 // NX Action constants
@@ -113,8 +113,11 @@ func NewNxActionHeader(subtype uint16) *NXActionHeader {
 	return &NXActionHeader{ActionHeader: actionHeader, Vendor: NxExperimenterID, Subtype: subtype}
 }
 
-func DecodeNxAction(data []byte) Action {
+func DecodeNxAction(data []byte) (Action, error) {
 	var a Action
+	if len(data) < 10 {
+		return nil, errors.New("data too short to decode NxAction")
+	}
 	// Previous 8 bytes in the data includes type(2 byte), length(2 byte), and vendor(4 byte)
 	subtype := binary.BigEndian.Uint16(data[8:])
 	switch subtype {
@@ -180,9 +183,10 @@ func DecodeNxAction(data []byte) Action {
 	case NXAST_RAW_DECAP:
 	case NXAST_DEC_NSH_TTL:
 	default:
-		log.Warningf("unknown NXActionHeader subtype: %v", data)
+		klog.Warningf("unknown NXActionHeader subtype: %v", data)
+		return nil, fmt.Errorf("unknown NXActionHeader subtype: %v", data)
 	}
-	return a
+	return a, nil
 }
 
 // NXActionConjunction is NX action to configure conjunctive match flows.
@@ -321,6 +325,7 @@ func (a *NXActionConnTrack) UnmarshalBinary(data []byte) error {
 	for n < int(a.Len()) {
 		act, err := DecodeAction(data[n:])
 		if err != nil {
+			klog.V(4).Infof("Failed to decode NXActionConnTrack Actions: err = %v data = %v", err, data[n:])
 			return errors.New("failed to decode actions")
 		}
 		a.actions = append(a.actions, act)
@@ -428,6 +433,7 @@ func (a *NXActionRegLoad) UnmarshalBinary(data []byte) error {
 	n += 2
 	a.DstReg = new(MatchField)
 	if err := a.DstReg.UnmarshalHeader(data[n : n+4]); err != nil {
+		klog.V(4).Infof("Failed to unmarshal NXActionRegLoad's DstReg: err = %v data = %v", err, data[n: n+4])
 		return err
 	}
 	n += 4
@@ -504,11 +510,16 @@ func (a *NXActionRegMove) UnmarshalBinary(data []byte) error {
 	n += 2
 	a.SrcField = new(MatchField)
 	if err := a.SrcField.UnmarshalHeader(data[n:]); err != nil {
+		klog.V(4).Infof("Failed to unmarshal NXActionRegMove's SrcField: err = %v data = %v", err, data[n:])
 		return err
 	}
 	n += 4
 	a.DstField = new(MatchField)
-	return a.DstField.UnmarshalHeader(data[n:])
+	if err := a.DstField.UnmarshalHeader(data[n:]); err != nil {
+		klog.V(4).Infof("Failed to unmarshal NXActionRegMove's DstField: err = %v data = %v", err, data[n:])
+		return err
+	}
+	return nil
 }
 
 // NXActionResubmit is NX action to resubmit packet to a specified in_port.
@@ -902,6 +913,7 @@ func (a *NXActionOutputReg) UnmarshalBinary(data []byte) error {
 	n += 2
 	a.SrcField = new(MatchField)
 	if err := a.SrcField.UnmarshalHeader(data[n : n+4]); err != nil {
+		klog.V(4).Infof("Failed to unmarshal NXActionOutputReg's SrcField: err = %v data = %v", err, data[n: n+4])
 		return err
 	}
 	n += 4
@@ -1141,6 +1153,7 @@ func (f *NXLearnSpecField) UnmarshalBinary(data []byte) error {
 	n := 0
 	err := f.Field.UnmarshalHeader(data[n:])
 	if err != nil {
+		klog.V(4).Infof("Failed to unmarshal NXLearnSpecField's Field: err = %v data = %v", err, data[n:])
 		return err
 	}
 	n += 4
@@ -1220,6 +1233,7 @@ func (s *NXLearnSpec) UnmarshalBinary(data []byte) error {
 		s.SrcField = new(NXLearnSpecField)
 		err = s.SrcField.UnmarshalBinary(data[n:])
 		if err != nil {
+			klog.V(4).Infof("Failed to unmarshal NXLearnSpec's SrcField: err = %v data = %v", err, data[n:])
 			return err
 		}
 		n += s.SrcField.Len()
@@ -1228,6 +1242,7 @@ func (s *NXLearnSpec) UnmarshalBinary(data []byte) error {
 		s.DstField = new(NXLearnSpecField)
 		err = s.DstField.UnmarshalBinary(data[n:])
 		if err != nil {
+			klog.V(4).Infof("Failed to unmarshal NXLearnSpec's DstField: err = %v data = %v", err, data[n:])
 			return err
 		}
 		n += s.DstField.Len()
@@ -1328,6 +1343,7 @@ func (a *NXActionLearn) UnmarshalBinary(data []byte) error {
 		spec := new(NXLearnSpec)
 		err = spec.UnmarshalBinary(data[n:])
 		if err != nil {
+			klog.V(4).Infof("Failed to unmarshal NXActionLearn's LearnSpecs: err = %v data = %v", err, data[n:])
 			return err
 		}
 		a.LearnSpecs = append(a.LearnSpecs, spec)
@@ -1434,7 +1450,12 @@ func (a *NXActionRegLoad2) UnmarshalBinary(data []byte) error {
 		return errors.New("the []byte is too short to unmarshal a full NXActionRegLoad2 message")
 	}
 	a.DstField = new(MatchField)
-	return a.DstField.UnmarshalBinary(data[n:])
+	err := a.DstField.UnmarshalBinary(data[n:])
+	if err != nil {
+		klog.V(4).Infof("Failed to unmarshal NXActionRegLoad2's DstField: err = %v data = %v", err, data[n:])
+		return err
+	}
+	return nil
 }
 
 // NXActionController is NX action to output packet to the Controller set with a specified ID.
@@ -1839,6 +1860,7 @@ func DecodeController2Prop(data []byte) (Property, error) {
 	}
 	err := p.UnmarshalBinary(data)
 	if err != nil {
+		klog.V(4).Infof("Failed to unmarshal NXActionController2Prop: err = %v data = %v", err, data)
 		return p, err
 	}
 	return p, nil
@@ -1902,6 +1924,7 @@ func (a *NXActionController2) UnmarshalBinary(data []byte) error {
 	for n < int(a.Length) {
 		prop, err := DecodeController2Prop(data[n:])
 		if err != nil {
+			klog.V(4).Infof("Failed to decode Controller2Prop: err = %v data = %v", err, data[n:])
 			return errors.New("failed to decode property")
 		}
 		a.props = append(a.props, prop)

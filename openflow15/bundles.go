@@ -5,6 +5,8 @@ import (
 	"errors"
 	"unsafe"
 
+	"k8s.io/klog/v2"
+
 	"antrea.io/libOpenflow/util"
 )
 
@@ -223,6 +225,7 @@ func (b *BundleAdd) UnmarshalBinary(data []byte) error {
 	n += 2
 	b.Message, err = Parse(data[n:])
 	if err != nil {
+		klog.V(4).Infof("Failed to parse BundleAdd's Message")
 		return err
 	}
 	n += int(b.Message.Len())
@@ -232,6 +235,7 @@ func (b *BundleAdd) UnmarshalBinary(data []byte) error {
 			var property BundlePropertyExperimenter
 			err = property.UnmarshalBinary(data[n:])
 			if err != nil {
+				klog.V(4).Infof("Failed to unmarshal BundlePropertyExperimenter: error = %v data = %v", err, data[n:])
 				return err
 			}
 			b.Properties = append(b.Properties, property)
@@ -302,6 +306,7 @@ func (e *VendorError) UnmarshalBinary(data []byte) error {
 	n += 4
 	err = e.Data.UnmarshalBinary(data[n:])
 	if err != nil {
+		klog.V(4).Infof("Failed to unmarshal VendorError's Data: err = %v data = %v", err, data[n:])
 		return err
 	}
 	n += int(e.Data.Len())
