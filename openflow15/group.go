@@ -6,7 +6,7 @@ import (
 	"encoding/binary"
 	"errors"
 
-	log "github.com/sirupsen/logrus"
+	"k8s.io/klog/v2"
 
 	"antrea.io/libOpenflow/common"
 	"antrea.io/libOpenflow/util"
@@ -118,7 +118,7 @@ func (g *GroupMod) MarshalBinary() (data []byte, err error) {
 		}
 		data = append(data, bytes...)
 		g.BucketArrayLen += bkt.Len()
-		log.Debugf("Groupmod bucket: %v", bytes)
+		klog.V(4).InfoS("Groupmod bucket", "bytes", bytes)
 	}
 
 	for _, p := range g.Properties {
@@ -128,7 +128,7 @@ func (g *GroupMod) MarshalBinary() (data []byte, err error) {
 		}
 		data = append(data, bytes...)
 	}
-	log.Debugf("GroupMod(%d): %v", len(data), data)
+	klog.V(4).InfoS("GroupMod MarshalBinary succeeded", "dataLength", len(data), "data", data)
 
 	return
 }
@@ -159,6 +159,7 @@ func (g *GroupMod) UnmarshalBinary(data []byte) (err error) {
 		bkt := new(Bucket)
 		err = bkt.UnmarshalBinary(data[n:])
 		if err != nil {
+			klog.ErrorS(err, "Failed to unmarshal GroupMod's Bucket", "data", data[n:])
 			return
 		}
 		g.Buckets = append(g.Buckets, *bkt)
@@ -176,6 +177,7 @@ func (g *GroupMod) UnmarshalBinary(data []byte) (err error) {
 		}
 		err = p.UnmarshalBinary(data[n:])
 		if err != nil {
+			klog.ErrorS(err, "Failed to unmarshal GroupMod's Properties", "data", data[n:])
 			return err
 		}
 		n += p.Len()
@@ -286,6 +288,7 @@ func (b *Bucket) UnmarshalBinary(data []byte) (err error) {
 	for n < 8+b.ActionArrayLen {
 		a, err := DecodeAction(data[n:])
 		if err != nil {
+			klog.ErrorS(err, "Failed to decode Bucket action", "data", data[n:])
 			return err
 		}
 		b.Actions = append(b.Actions, a)
@@ -309,6 +312,7 @@ func (b *Bucket) UnmarshalBinary(data []byte) (err error) {
 		}
 		err = p.UnmarshalBinary(data[n:])
 		if err != nil {
+			klog.ErrorS(err, "Failed to decode Bucket property", "data", data[n:])
 			return err
 		}
 		n += p.Len()
