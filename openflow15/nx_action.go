@@ -238,7 +238,7 @@ func (a *NXActionConjunction) UnmarshalBinary(data []byte) error {
 		return err
 	}
 	n += int(a.NXActionHeader.Len())
-	if len(data) < int(a.Len()) {
+	if len(data) < int(a.Len()) || len(data) < n + 6 {
 		return errors.New("the []byte is too short to unmarshal a full NXActionConjunction message")
 	}
 	a.Clause = uint8(data[n])
@@ -306,7 +306,7 @@ func (a *NXActionConnTrack) UnmarshalBinary(data []byte) error {
 		return err
 	}
 	n += int(a.NXActionHeader.Len())
-	if len(data) < int(a.Len()) {
+	if len(data) < int(a.Len()) || len(data) < n + 14 {
 		return errors.New("the []byte is too short to unmarshal a full NXActionConnTrack message")
 	}
 	a.Flags = binary.BigEndian.Uint16(data[n:])
@@ -426,7 +426,7 @@ func (a *NXActionRegLoad) UnmarshalBinary(data []byte) error {
 		return err
 	}
 	n += int(a.NXActionHeader.Len())
-	if len(data) < int(a.Len()) {
+	if len(data) < int(a.Len()) || len(data) < n + 14 {
 		return errors.New("the []byte is too short to unmarshal a full NXActionRegLoad message")
 	}
 	a.OfsNbits = binary.BigEndian.Uint16(data[n:])
@@ -499,7 +499,7 @@ func (a *NXActionRegMove) UnmarshalBinary(data []byte) error {
 		return err
 	}
 	n += int(a.NXActionHeader.Len())
-	if len(data) < int(a.Length) {
+	if len(data) < int(a.Length) || len(data) < n + 6 {
 		return errors.New("the []byte is too short to unmarshal a full NXActionRegMove message")
 	}
 	a.Nbits = binary.BigEndian.Uint16(data[n:])
@@ -570,7 +570,7 @@ func (a *NXActionResubmit) UnmarshalBinary(data []byte) error {
 		return err
 	}
 	n += int(a.NXActionHeader.Len())
-	if len(data) < int(a.Len()) {
+	if len(data) < int(a.Len()) || len(data) < n + 2 {
 		return errors.New("the []byte is too short to unmarshal a full NXActionConjunction message")
 	}
 	a.InPort = binary.BigEndian.Uint16(data[n:])
@@ -648,7 +648,7 @@ func (a *NXActionResubmitTable) UnmarshalBinary(data []byte) error {
 		return err
 	}
 	n += int(a.NXActionHeader.Len())
-	if len(data) < int(a.Len()) {
+	if len(data) < int(a.Len()) || len(data) < n + 6 {
 		return errors.New("the []byte is too short to unmarshal a full NXActionResubmitTable message")
 	}
 	a.InPort = binary.BigEndian.Uint16(data[n:])
@@ -824,7 +824,7 @@ func (a *NXActionCTNAT) UnmarshalBinary(data []byte) error {
 		return err
 	}
 	n += int(a.NXActionHeader.Len())
-	if len(data) < int(a.Len()) {
+	if len(data) < int(a.Len()) || len(data) < n + 6 {
 		return errors.New("the []byte is too short to unmarshal a full NXActionCTNAT message")
 	}
 	// Skip padding bytes
@@ -834,29 +834,47 @@ func (a *NXActionCTNAT) UnmarshalBinary(data []byte) error {
 	a.rangePresent = binary.BigEndian.Uint16(data[n:])
 	n += 2
 	if a.rangePresent&NX_NAT_RANGE_IPV4_MIN != 0 {
+		if len(data) < n + 4 {
+			return errors.New("data too short to unmarshal NXActionCTNAT's rangeIPv4Min")
+		}
 		a.rangeIPv4Min = net.IPv4(data[n], data[n+1], data[n+2], data[n+3])
 		n += 4
 	}
 	if a.rangePresent&NX_NAT_RANGE_IPV4_MAX != 0 {
+		if len(data) < n + 4 {
+			return errors.New("data too short to unmarshal NXActionCTNAT's rangeIPv4Max")
+		}
 		a.rangeIPv4Max = net.IPv4(data[n], data[n+1], data[n+2], data[n+3])
 		n += 4
 	}
 	if a.rangePresent&NX_NAT_RANGE_IPV6_MIN != 0 {
+		if len(data) < n + 16 {
+			return errors.New("data too short to unmarshal NXActionCTNAT's rangeIPv6Min")
+		}
 		a.rangeIPv6Min = make([]byte, 16)
 		copy(a.rangeIPv6Min, data[n:n+16])
 		n += 16
 	}
 	if a.rangePresent&NX_NAT_RANGE_IPV6_MAX != 0 {
+		if len(data) < n + 16 {
+			return errors.New("data too short to unmarshal NXActionCTNAT's rangeIPv6Max")
+		}
 		a.rangeIPv6Max = make([]byte, 16)
 		copy(a.rangeIPv6Max, data[n:n+16])
 		n += 16
 	}
 	if a.rangePresent&NX_NAT_RANGE_PROTO_MIN != 0 {
+		if len(data) < n + 2 {
+			return errors.New("data too short to unmarshal NXActionCTNAT's rangeProtoMin")
+		}
 		portMin := binary.BigEndian.Uint16(data[n:])
 		a.rangeProtoMin = &portMin
 		n += 2
 	}
 	if a.rangePresent&NX_NAT_RANGE_PROTO_MAX != 0 {
+		if len(data) < n + 2 {
+			return errors.New("data too short to unmarshal NXActionCTNAT's rangeProtoMax")
+		}
 		portMax := binary.BigEndian.Uint16(data[n:])
 		a.rangeProtoMax = &portMax
 		n += 2
@@ -906,7 +924,7 @@ func (a *NXActionOutputReg) UnmarshalBinary(data []byte) error {
 		return err
 	}
 	n += int(a.NXActionHeader.Len())
-	if len(data) < int(a.Len()) {
+	if len(data) < int(a.Len()) || len(data) < n + 8 {
 		return errors.New("the []byte is too short to unmarshal a full NXActionOutputReg message")
 	}
 	a.OfsNbits = binary.BigEndian.Uint16(data[n:])
@@ -978,7 +996,7 @@ func (a *NXActionDecTTL) UnmarshalBinary(data []byte) error {
 		return err
 	}
 	n += int(a.NXActionHeader.Len())
-	if len(data) < int(a.Len()) {
+	if len(data) < int(a.Len()) || len(data) < n + 6 {
 		return errors.New("the []byte is too short to unmarshal a full NXActionDecTTL message")
 	}
 	a.controllers = binary.BigEndian.Uint16(data[n:])
@@ -1034,14 +1052,14 @@ func (a *NXActionDecTTLCntIDs) UnmarshalBinary(data []byte) error {
 		return err
 	}
 	n += int(a.NXActionHeader.Len())
-	if len(data) < int(a.Len()) {
+	if len(data) < int(a.Len()) || len(data) < n + 6 {
 		return errors.New("the []byte is too short to unmarshal a full NXActionDecTTLCntIDs message")
 	}
 	a.controllers = binary.BigEndian.Uint16(data[n:])
 	n += 2
 	a.zeros = [4]uint8{}
 	n += 4
-	for i := 0; i < int(a.controllers); i++ {
+	for i := 0; i < int(a.controllers) && n + 1 < int(a.Len()); i++ {
 		id := binary.BigEndian.Uint16(data[n:])
 		a.cntIDs = append(a.cntIDs, id)
 		n += 2
@@ -1227,6 +1245,9 @@ func (s *NXLearnSpec) UnmarshalBinary(data []byte) error {
 	n := s.Header.Len()
 	if s.Header.src {
 		srcDataLength := 2 * ((s.Header.nBits + 15) / 16)
+		if len(data) < int(n + srcDataLength) {
+			return errors.New("data too short to unmarshal NXLearnSpec's SrcValue")
+		}
 		s.SrcValue = data[n : n+srcDataLength]
 		n += srcDataLength
 	} else {
@@ -1316,10 +1337,10 @@ func (a *NXActionLearn) UnmarshalBinary(data []byte) error {
 	if err != nil {
 		return err
 	}
-	if len(data) < int(a.Length) {
+	n += int(a.NXActionHeader.Len())
+	if len(data) < int(a.Length) || len(data) < n + 18 {
 		return errors.New("the []byte is too short to unmarshal a full NXActionLearn message")
 	}
-	n += int(a.NXActionHeader.Len())
 	a.IdleTimeout = binary.BigEndian.Uint16(data[n:])
 	n += 2
 	a.HardTimeout = binary.BigEndian.Uint16(data[n:])
@@ -1499,10 +1520,10 @@ func (a *NXActionController) UnmarshalBinary(data []byte) error {
 	if err != nil {
 		return err
 	}
-	if len(data) < int(a.Length) {
+	n += int(a.NXActionHeader.Len())
+	if len(data) < int(a.Length) || len(data) < n + 6 {
 		return errors.New("the []byte is too short to unmarshal a full NXActionController message")
 	}
-	n += int(a.NXActionHeader.Len())
 	a.MaxLen = binary.BigEndian.Uint16(data[n:])
 	n += 2
 	a.ControllerID = binary.BigEndian.Uint16(data[n:])
@@ -1565,10 +1586,10 @@ func (a *NXActionController2PropMaxLen) UnmarshalBinary(data []byte) error {
 	if err := a.PropHeader.UnmarshalBinary(data[n:]); err != nil {
 		return err
 	}
-	if len(data) < int(a.Length) {
+	n += int(a.PropHeader.Len())
+	if len(data) < int(a.Length) || len(data) < n + 2 {
 		return errors.New("the []byte is too short to unmarshal a full NXActionController2PropMaxLen message")
 	}
-	n += int(a.PropHeader.Len())
 
 	a.MaxLen = binary.BigEndian.Uint16(data[n:])
 	return nil
@@ -1617,10 +1638,10 @@ func (a *NXActionController2PropControllerID) UnmarshalBinary(data []byte) error
 	if err := a.PropHeader.UnmarshalBinary(data[n:]); err != nil {
 		return err
 	}
-	if len(data) < int(a.Length) {
+	n += int(a.PropHeader.Len())
+	if len(data) < int(a.Length) || len(data) < n + 2 {
 		return errors.New("the []byte is too short to unmarshal a full NXActionController2PropControllerID message")
 	}
-	n += int(a.PropHeader.Len())
 
 	a.ControllerID = binary.BigEndian.Uint16(data[n:])
 	return nil
@@ -1669,10 +1690,10 @@ func (a *NXActionController2PropReason) UnmarshalBinary(data []byte) error {
 	if err := a.PropHeader.UnmarshalBinary(data[n:]); err != nil {
 		return err
 	}
-	if len(data) < int(a.Length) {
+	n += int(a.PropHeader.Len())
+	if len(data) < int(a.Length) || len(data) < n + 4 {
 		return errors.New("the []byte is too short to unmarshal a full NXActionController2PropReason message")
 	}
-	n += int(a.PropHeader.Len())
 
 	a.Reason = data[n]
 	return nil
@@ -1819,10 +1840,10 @@ func (a *NXActionController2PropMeterId) UnmarshalBinary(data []byte) error {
 	if err := a.PropHeader.UnmarshalBinary(data[n:]); err != nil {
 		return err
 	}
-	if len(data) < int(a.Length) {
+	n += int(a.PropHeader.Len())
+	if len(data) < int(a.Length) || len(data) < n + 4 {
 		return errors.New("the []byte is too short to unmarshal a full NXActionController2PropMeterId message")
 	}
-	n += int(a.PropHeader.Len())
 
 	a.MeterId = binary.BigEndian.Uint32(data[n:])
 	return nil
@@ -1839,6 +1860,9 @@ func NewMeterId(meterId uint32) *NXActionController2PropMeterId {
 
 // Decode Controller2 Property types.
 func DecodeController2Prop(data []byte) (Property, error) {
+	if len(data) < 2 {
+		return nil, errors.New("data too short to decode Controller2Prop")
+	}
 	t := binary.BigEndian.Uint16(data[:2])
 	var p Property
 	switch t {

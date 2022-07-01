@@ -297,6 +297,10 @@ func (p *PacketOut) UnmarshalBinary(data []byte) (err error) {
 	}
 	n := p.Header.Len()
 
+	if len(data) < int(p.Header.Length) || len(data) < int(n) + 8 {
+		return errors.New("data too short to unmarshal PacketOut")
+	}
+
 	p.BufferId = binary.BigEndian.Uint32(data[n:])
 	n += 4
 	p.ActionsLen = binary.BigEndian.Uint16(data[n:])
@@ -410,6 +414,10 @@ func (p *PacketIn) UnmarshalBinary(data []byte) error {
 	}
 	n := p.Header.Len()
 
+	if len(data) < int(p.Header.Length) || len(data) < int(n) + 16 {
+		return errors.New("data too short to unmarshal PacketIn")
+	}
+
 	p.BufferId = binary.BigEndian.Uint32(data[n:])
 	n += 4
 	p.TotalLen = binary.BigEndian.Uint16(data[n:])
@@ -517,6 +525,9 @@ func (c *SwitchConfig) UnmarshalBinary(data []byte) error {
 		return err
 	}
 	n += int(c.Header.Len())
+	if len(data) < int(c.Header.Length) || len(data) < n + 4 {
+		return errors.New("data too short to unmarshal SwitchConfig")
+	}
 	c.Flags = binary.BigEndian.Uint16(data[n:])
 	n += 2
 	c.MissSendLen = binary.BigEndian.Uint16(data[n:])
@@ -938,6 +949,9 @@ func (s *SwitchFeatures) UnmarshalBinary(data []byte) error {
 		return err
 	}
 	n = int(s.Header.Len())
+	if len(data) < int(s.Header.Length) || len(data) < n + len(s.DPID) + 16 {
+		return errors.New("data too short to unmarshal SwitchFeatures")
+	}
 	copy(s.DPID, data[n:])
 	n += len(s.DPID)
 
@@ -1017,6 +1031,9 @@ func (v *VendorHeader) UnmarshalBinary(data []byte) error {
 		return err
 	}
 	n := int(v.Header.Len())
+	if len(data) < int(v.Header.Length) || len(data) < n + 8 {
+		return errors.New("data too short to unmarshal VendorHeader")
+	}
 	v.Vendor = binary.BigEndian.Uint32(data[n:])
 	n += 4
 	v.ExperimenterType = binary.BigEndian.Uint32(data[n:])
@@ -1094,6 +1111,9 @@ func (m *RoleRequest) UnmarshalBinary(data []byte) (err error) {
 		return
 	}
 	n = int(m.Header.Len())
+	if len(data) < int(m.Header.Length) || len(data) < n + 16 {
+		return errors.New("data too short to unmarshal RoleRequest")
+	}
 
 	m.Role = binary.BigEndian.Uint32(data[n:])
 	n += 4
@@ -1187,8 +1207,11 @@ func (a *Async_Config) UnmarshalBinary(data []byte) (err error) {
 		return
 	}
 	n = a.Header.Len()
+	if len(data) < int(a.Header.Length) {
+		return errors.New("data too short to unmarshal Async_Config")
+	}
 
-	for n < a.Header.Length {
+	for n + 1 < a.Header.Length {
 		var p util.Message
 		switch binary.BigEndian.Uint16(data[n:]) {
 		case ACPT_PACKET_IN_SLAVE:
@@ -1264,6 +1287,9 @@ func (h *AsyncConfigPropHeader) MarshalBinary() (data []byte, err error) {
 }
 
 func (h *AsyncConfigPropHeader) UnmarshalBinary(data []byte) (err error) {
+	if len(data) < 4 {
+		return errors.New("data too short to unmarshal AsyncConfigPropHeader")
+	}
 	h.Type = binary.BigEndian.Uint16(data[0:])
 	h.Length = binary.BigEndian.Uint16(data[2:])
 	return
@@ -1302,6 +1328,9 @@ func (p *AsyncConfigPropReasons) UnmarshalBinary(data []byte) (err error) {
 		return
 	}
 	n := p.Header.Len()
+	if len(data) < int(p.Header.Length) || len(data) < int(n) + 4 {
+		return errors.New("data too short to unmarshal AsyncConfigPropReasons")
+	}
 
 	p.Mask = binary.BigEndian.Uint32(data[n:])
 	n += 4
@@ -1350,6 +1379,10 @@ func (p *AsyncConfigPropExperimenter) UnmarshalBinary(data []byte) (err error) {
 		return
 	}
 	n := p.Header.Len()
+
+	if len(data) < int(n) + 4 + int(p.Header.Length) {
+		return errors.New("data too short to unmarshal AsyncConfigPropExperimenter")
+	}
 
 	p.Experimenter = binary.BigEndian.Uint32(data[n:])
 	n += 4
@@ -1438,6 +1471,9 @@ func (r *RoleStatus) UnmarshalBinary(data []byte) (err error) {
 		return
 	}
 	n = r.Header.Len()
+	if len(data) < int(r.Header.Length) || len(data) < int(n) + 16 {
+		return errors.New("data too short to unmarshal RoleStatus")
+	}
 
 	r.Role = binary.BigEndian.Uint32(data[n:])
 	n += 4
@@ -1450,7 +1486,7 @@ func (r *RoleStatus) UnmarshalBinary(data []byte) (err error) {
 	r.GenerationId = binary.BigEndian.Uint64(data[n:])
 	n += 8
 
-	for n < r.Header.Length {
+	for n + 1 < r.Header.Length {
 		var p util.Message
 		switch binary.BigEndian.Uint16(data[n:]) {
 		case RPT_EXPERIMENTER:
@@ -1497,6 +1533,9 @@ func (h *PropHeader) MarshalBinary() (data []byte, err error) {
 }
 
 func (h *PropHeader) UnmarshalBinary(data []byte) (err error) {
+	if len(data) < int(h.Len()) {
+		return errors.New("data too short unmarshal PropHeader")
+	}
 	h.Type = binary.BigEndian.Uint16(data[0:])
 	h.Length = binary.BigEndian.Uint16(data[2:])
 	return
@@ -1551,13 +1590,17 @@ func (p *PropExperimenter) UnmarshalBinary(data []byte) (err error) {
 	}
 	n := p.Header.Len()
 
+	if len(data) < int(p.Header.Length) || len(data) < int(n) + 8 {
+		return errors.New("data too short to unmarshal PropExperimenter")
+	}
+
 	p.Experimenter = binary.BigEndian.Uint32(data[n:])
 	n += 4
 
 	p.ExpType = binary.BigEndian.Uint32(data[n:])
 	n += 4
 
-	for n < p.Header.Length+p.Header.Len() {
+	for n + 3 < p.Header.Length+p.Header.Len() {
 		d := binary.BigEndian.Uint32(data[n:])
 		p.Data = append(p.Data, d)
 		n += 4
@@ -1622,6 +1665,9 @@ func (t *TableDesc) MarshalBinary() (data []byte, err error) {
 
 func (t *TableDesc) UnmarshalBinary(data []byte) (err error) {
 	var n uint16 = 0
+	if len(data) < 8 {
+		return errors.New("data too short to unmarshal TableDesc")
+	}
 	t.Length = binary.BigEndian.Uint16(data[n:])
 	n += 2
 
@@ -1631,7 +1677,7 @@ func (t *TableDesc) UnmarshalBinary(data []byte) (err error) {
 	t.Config = binary.BigEndian.Uint32(data[n:])
 	n += 4
 
-	for n < t.Length {
+	for n + 1 < t.Length {
 		var p util.Message
 		switch binary.BigEndian.Uint16(data[n:]) {
 		case OFPTMPT_EVICTION:
@@ -1710,6 +1756,9 @@ func (t *TableModPropEviction) UnmarshalBinary(data []byte) (err error) {
 		return
 	}
 	n += t.Header.Len()
+	if len(data) < int(t.Header.Length) || len(data) < int(n) + 4 {
+		return errors.New("data too short to unmarshal TableModPropEviction")
+	}
 	t.Flags = binary.BigEndian.Uint32(data[n:])
 	return
 }
@@ -1763,6 +1812,10 @@ func (t *TableModPropVacancy) UnmarshalBinary(data []byte) (err error) {
 		return
 	}
 	n += t.Header.Len()
+
+	if len(data) < int(t.Header.Length) || len(data) < int(n) + 4 {
+		return errors.New("data too short to unmarshal TableModPropVacancy")
+	}
 
 	t.VacancyUp = data[n]
 	n++
@@ -1836,6 +1889,10 @@ func (t *TableStatus) UnmarshalBinary(data []byte) (err error) {
 		return
 	}
 	n = t.Header.Len()
+
+	if len(data) < int(t.Header.Length) || len(data) < int(n) + 8 {
+		return errors.New("data too short to unmarshal TableStatus")
+	}
 
 	t.Reason = data[n]
 	n++
@@ -1913,6 +1970,10 @@ func (t *TableMod) UnmarshalBinary(data []byte) (err error) {
 	}
 	n = t.Header.Len()
 
+	if len(data) < int(t.Header.Length) || len(data) < int(n) + 8 {
+		return errors.New("data too short to unmarshal TableMod")
+	}
+
 	t.TableId = data[n]
 	n++
 	n += 3 // Pad
@@ -1920,7 +1981,7 @@ func (t *TableMod) UnmarshalBinary(data []byte) (err error) {
 	t.Config = binary.BigEndian.Uint32(data[n:])
 	n += 4
 
-	for n < uint16(len(data)) {
+	for n + 1 < uint16(len(data)) {
 		var p util.Message
 		switch binary.BigEndian.Uint16(data[n:]) {
 		case OFPTMPT_EVICTION:
@@ -1991,6 +2052,9 @@ func (r *RequestForward) UnmarshalBinary(data []byte) (err error) {
 		return
 	}
 	n = r.Header.Len()
+	if len(data) < int(r.Header.Length) {
+		return errors.New("data too short to unmarshal RequestForward")
+	}
 
 	err = r.Request.UnmarshalBinary(data[n:])
 	if err != nil {
@@ -2095,6 +2159,9 @@ func (c *BundleCtrl) UnmarshalBinary(data []byte) (err error) {
 		return
 	}
 	n = c.Header.Len()
+	if len(data) < int(c.Header.Length) || len(data) < int(n) + 8 {
+		return errors.New("data too short to unmarshal BundleCtrl")
+	}
 
 	c.BundleId = binary.BigEndian.Uint32(data[n:])
 	n += 4
@@ -2105,7 +2172,7 @@ func (c *BundleCtrl) UnmarshalBinary(data []byte) (err error) {
 	c.Flags = binary.BigEndian.Uint16(data[n:])
 	n += 2
 
-	for n < c.Length {
+	for n + 1 < c.Length {
 		var p util.Message
 		switch binary.BigEndian.Uint16(data[n:]) {
 		case BPT_TIME:
@@ -2173,6 +2240,10 @@ func (t *BundlePropTime) UnmarshalBinary(data []byte) (err error) {
 	}
 	n = t.Header.Len()
 
+	if len(data) < int(t.Header.Length) || len(data) < int(n) + 4 {
+		return errors.New("data too short to unmarshal BundlePropTime")
+	}
+
 	n += 4 // Pad
 
 	err = t.SchedTime.UnmarshalBinary(data[n:])
@@ -2208,6 +2279,9 @@ func (t *OfpTime) MarshalBinary() (data []byte, err error) {
 }
 
 func (t *OfpTime) UnmarshalBinary(data []byte) (err error) {
+	if len(data) < int(t.Len()) {
+		return errors.New("data too short to unmarshal OfpTime")
+	}
 	n := 0
 	t.Seconds = binary.BigEndian.Uint64(data[n:])
 	n += 8
@@ -2294,6 +2368,9 @@ func (c *BndleAdd) UnmarshalBinary(data []byte) (err error) {
 		return
 	}
 	n = c.Header.Len()
+	if len(data) < int(c.Header.Length) || len(data) < int(n) + 8 {
+		return errors.New("data too short to unmarshal BndleAdd")
+	}
 
 	c.BundleId = binary.BigEndian.Uint32(data[n:])
 	n += 4
@@ -2310,7 +2387,7 @@ func (c *BndleAdd) UnmarshalBinary(data []byte) (err error) {
 	}
 	n += c.Message.Len()
 
-	for n < c.Length {
+	for n + 1 < c.Length {
 		var p util.Message
 		switch binary.BigEndian.Uint16(data[n:]) {
 		case BPT_TIME:
@@ -2383,6 +2460,10 @@ func (c *ControllerStatusHeader) UnmarshalBinary(data []byte) (err error) {
 	}
 	n = c.Header.Len()
 
+	if len(data) < int(c.Header.Length) {
+		return errors.New("data too short to unmarshal ControllerStatusHeader")
+	}
+
 	err = c.Status.UnmarshalBinary(data[n:])
 	if err != nil {
 		klog.V(4).Infof("Failed to unmarshal ControllerStatusHeader's Status: err = %v data = %v", err, data[n:])
@@ -2451,6 +2532,10 @@ func (c *ControllerStatus) MarshalBinary() (data []byte, err error) {
 func (c *ControllerStatus) UnmarshalBinary(data []byte) (err error) {
 	var n uint16
 
+	if len(data) < 16 {
+		return errors.New("data too short to unmarshal ControllerStatus")
+	}
+
 	c.Length = binary.BigEndian.Uint16(data[n:])
 	n += 2
 
@@ -2468,7 +2553,7 @@ func (c *ControllerStatus) UnmarshalBinary(data []byte) (err error) {
 
 	n += 6 //Pad
 
-	for n < uint16(len(data)) {
+	for n + 1 < uint16(len(data)) {
 		var p util.Message
 		switch binary.BigEndian.Uint16(data[n:]) {
 		case CSPT_URI:
@@ -2561,6 +2646,10 @@ func (p *ControllerStatusPropUri) UnmarshalBinary(data []byte) (err error) {
 		return
 	}
 	n = p.Header.Len()
+
+	if len(data) < int(p.Header.Length) || len(data) < int(n + p.Header.Length - 4) {
+		return errors.New("data too short to unmarshal ControllerStatusPropUri")
+	}
 
 	p.Uri = make([]byte, p.Header.Length-4)
 	copy(p.Uri, data[n:])

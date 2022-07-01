@@ -63,6 +63,10 @@ func (s *MultipartRequest) UnmarshalBinary(data []byte) error {
 	}
 	n := s.Header.Len()
 
+	if len(data) < int(s.Header.Length) || len(data) < int(n) + 8 {
+		return errors.New("data too short to unmarshal MultipartRequest")
+	}
+
 	s.Type = binary.BigEndian.Uint16(data[n:])
 	n += 2
 	s.Flags = binary.BigEndian.Uint16(data[n:])
@@ -193,6 +197,10 @@ func (s *MultipartReply) UnmarshalBinary(data []byte) error {
 	}
 	n := s.Header.Len()
 
+	if len(data) < int(s.Header.Length) || len(data) < int(n) + 8 {
+		return errors.New("data too short to unmarshal MultipartReply")
+	}
+
 	s.Type = binary.BigEndian.Uint16(data[n:])
 	n += 2
 	s.Flags = binary.BigEndian.Uint16(data[n:])
@@ -253,6 +261,9 @@ func (s *MultipartReply) UnmarshalBinary(data []byte) error {
 		case MultipartType_FlowMonitor:
 			// The reply body is an array of struct ofp_flow_update_header.
 			// switch on event
+			if len(data) < int(n) + 3 {
+				return errors.New("data too short to unmarshal MultipartType_FlowMonitor")
+			}
 			switch binary.BigEndian.Uint16(data[n+2:]) {
 			case FME_INITIAL:
 				repl = NewFlowUpdateFull(FME_INITIAL)
@@ -483,6 +494,9 @@ func (s *DescStats) MarshalBinary() (data []byte, err error) {
 }
 
 func (s *DescStats) UnmarshalBinary(data []byte) error {
+	if len(data) < int(s.Len()) {
+		return errors.New("data too short to unmarshal DescStats")
+	}
 	n := 0
 	copy(s.MfrDesc, data[n:])
 	n += len(s.MfrDesc)
@@ -558,6 +572,9 @@ func (s *FlowStatsRequest) MarshalBinary() (data []byte, err error) {
 }
 
 func (s *FlowStatsRequest) UnmarshalBinary(data []byte) error {
+	if len(data) < 32 {
+		return errors.New("data too short to unmarshal FlowStatsRequest")
+	}
 	n := 0
 	s.TableId = data[n]
 	n += 1
@@ -645,6 +662,9 @@ func (s *FlowStats) MarshalBinary() (data []byte, err error) {
 
 func (s *FlowStats) UnmarshalBinary(data []byte) error {
 	var n uint16
+	if len(data) < 8 {
+		return errors.New("data too short to unmarshal FlowStats")
+	}
 	s.Length = binary.BigEndian.Uint16(data[n:])
 	n += 2
 	n += 2 // Pad2
@@ -725,6 +745,9 @@ func (s *AggregateStatsRequest) MarshalBinary() (data []byte, err error) {
 }
 
 func (s *AggregateStatsRequest) UnmarshalBinary(data []byte) error {
+	if len(data) < 32 {
+		return errors.New("data too short to unmarshal AggregateStatsRequest")
+	}
 	n := 0
 	s.TableId = data[n]
 	n += 1
@@ -805,6 +828,9 @@ func (s *AggregateStats) MarshalBinary() (data []byte, err error) {
 }
 
 func (s *AggregateStats) UnmarshalBinary(data []byte) error {
+	if len(data) < int(s.Len()) {
+		return errors.New("data too short to unmarshal AggregateStats")
+	}
 	n := 0
 	s.PacketCount = binary.BigEndian.Uint64(data[n:])
 	n += 8
@@ -851,6 +877,9 @@ func (s *TableStats) MarshalBinary() (data []byte, err error) {
 }
 
 func (s *TableStats) UnmarshalBinary(data []byte) error {
+	if len(data) < int(s.Len()) {
+		return errors.New("data too short to unmarshal TableStats")
+	}
 	n := 0
 	s.TableId = data[0]
 	n += 1
@@ -892,6 +921,9 @@ func (s *PortMultipartRequst) MarshalBinary() (data []byte, err error) {
 }
 
 func (s *PortMultipartRequst) UnmarshalBinary(data []byte) error {
+	if len(data) < int(s.Len()) {
+		return errors.New("data too short to unmarshal PortMultipartRequest")
+	}
 	s.PortNo = binary.BigEndian.Uint32(data)
 	return nil
 }
@@ -973,6 +1005,9 @@ func (s *PortStats) MarshalBinary() (data []byte, err error) {
 }
 
 func (s *PortStats) UnmarshalBinary(data []byte) (err error) {
+	if len(data) < 80 {
+		return errors.New("data too short to unmarshal PortStats")
+	}
 	var n uint16
 	s.Length = binary.BigEndian.Uint16(data[n:])
 	n += 2
@@ -1000,7 +1035,7 @@ func (s *PortStats) UnmarshalBinary(data []byte) (err error) {
 	s.TxErrors = binary.BigEndian.Uint64(data[n:])
 	n += 8
 
-	for n < s.Length {
+	for n + 1 < s.Length {
 		var p util.Message
 		switch binary.BigEndian.Uint16(data[n:]) {
 		case PSPT_ETHERNET:
@@ -1084,6 +1119,9 @@ func (prop *PortStatsPropEthernet) UnmarshalBinary(data []byte) (err error) {
 		return
 	}
 	n = prop.Header.Len()
+	if len(data) < int(prop.Header.Length) || len(data) < int(n) + 36 {
+		return errors.New("data too short to unmarshal PortStatsPropEthernet")
+	}
 	n += 4 // Pad
 
 	prop.RxFrameErr = binary.BigEndian.Uint64(data[n:])
@@ -1182,6 +1220,9 @@ func (prop *PortStatsPropOptical) UnmarshalBinary(data []byte) (err error) {
 		return
 	}
 	n = prop.Header.Len()
+	if len(data) < int(prop.Header.Length) || len(data) < int(n) + 40 {
+		return errors.New("data too short to unmarshal PortStatsPropOptical")
+	}
 	n += 4 // Pad
 
 	prop.Flags = binary.BigEndian.Uint32(data[n:])
@@ -1236,6 +1277,9 @@ func (s *QueueMultipartRequest) MarshalBinary() (data []byte, err error) {
 }
 
 func (s *QueueMultipartRequest) UnmarshalBinary(data []byte) error {
+	if len(data) < int(s.Len()) {
+		return errors.New("data too short to unmarshal QueueMultipartRequest")
+	}
 	n := 0
 	s.PortNo = binary.BigEndian.Uint32(data[n:])
 	n += 4
@@ -1314,6 +1358,10 @@ func (s *QueueStats) MarshalBinary() (data []byte, err error) {
 func (s *QueueStats) UnmarshalBinary(data []byte) (err error) {
 	var n uint16
 
+	if len(data) < 48 {
+		return errors.New("data too short to unmarshal QueueStats")
+	}
+
 	s.Length = binary.BigEndian.Uint16(data[n:])
 	n += 2
 	n += 6 // Pad
@@ -1332,7 +1380,7 @@ func (s *QueueStats) UnmarshalBinary(data []byte) (err error) {
 	s.DurationNSec = binary.BigEndian.Uint32(data[n:])
 	n += 4
 
-	for n < s.Length {
+	for n + 1 < s.Length {
 		var p util.Message
 		switch binary.BigEndian.Uint16(data[n:]) {
 		case QSPT_EXPERIMENTER:
@@ -1525,7 +1573,7 @@ func (p *InstructionProperty) UnmarshalBinary(data []byte) error {
 	p.Instructions = make([]InstructionId, 0)
 	for n < int(p.Length) {
 		instr := new(InstructionId)
-		err := instr.UnmarshalBinary(data[n : n+4])
+		err := instr.UnmarshalBinary(data[n:])
 		if err != nil {
 			klog.V(4).Infof("Failed to unmarshal InstructionProperty's Instructions: err = %v data = %v", err, data[n:])
 			return err
@@ -1570,11 +1618,18 @@ func (i *InstructionId) MarshalBinary() (data []byte, err error) {
 }
 
 func (i *InstructionId) UnmarshalBinary(data []byte) (err error) {
+	if len(data) < 4 {
+		return errors.New("data too short to unmarshal InstructionId")
+	}
 	n := 0
 	i.Type = binary.BigEndian.Uint16(data[n:])
 	n += 2
 	i.Length = binary.BigEndian.Uint16(data[n:])
 	n += 2
+
+	if len(data) < n + int(i.Length) - 4 {
+		return errors.New("data too short to unmarshal InstructionId's Data")
+	}
 
 	i.Data = make([]byte, i.Length-4)
 	copy(i.Data, data[n:])
@@ -1731,11 +1786,18 @@ func (a *ActionId) MarshalBinary() (data []byte, err error) {
 }
 
 func (a *ActionId) UnmarshalBinary(data []byte) (err error) {
+	if len(data) < 4 {
+		return errors.New("data too short to unmarshal ActionId")
+	}
 	n := 0
 	a.Type = binary.BigEndian.Uint16(data[n:])
 	n += 2
 	a.Length = binary.BigEndian.Uint16(data[n:])
 	n += 2
+
+	if len(data) < int(a.Length) {
+		return errors.New("data too short to unmarshal ActionId's Data")
+	}
 
 	a.Data = make([]byte, a.Length-4)
 	copy(a.Data, data[n:])
@@ -1786,7 +1848,7 @@ func (p *SetFieldProperty) UnmarshalBinary(data []byte) error {
 	}
 	n += 4
 	p.IDs = make([]uint32, 0)
-	for n < int(p.Length) {
+	for n + 3 < int(p.Length) {
 		p.IDs = append(p.IDs, binary.BigEndian.Uint32(data[n:]))
 		n += 4
 	}
@@ -1828,9 +1890,12 @@ func (p *SetFieldPacketTypes) UnmarshalBinary(data []byte) error {
 		return err
 	}
 	p.OFTablePropertyHeader = *header
+	if len(data) < int(header.Length) {
+		return errors.New("data too short to unmarshal SetFieldPacketTypes")
+	}
 	n += 4
 	p.OXMs = make([]uint32, 0)
-	for n < int(p.Length) {
+	for n + 3 < int(p.Length) {
 		p.OXMs = append(p.OXMs, binary.BigEndian.Uint32(data[n:]))
 		n += 4
 	}
@@ -1879,7 +1944,8 @@ func (p *TableExperimenterProperty) UnmarshalBinary(data []byte) error {
 		return err
 	}
 	p.OFTablePropertyHeader = *header
-	if len(data) < int(p.Length) {
+	n += int(header.Len())
+	if len(data) < int(p.Length) || len(data) < n + 12 {
 		return fmt.Errorf("the []byte is too short to unmarshal a full TableExperimenterProperty message")
 	}
 	n += 4
@@ -1888,7 +1954,7 @@ func (p *TableExperimenterProperty) UnmarshalBinary(data []byte) error {
 	p.ExperimenterType = binary.BigEndian.Uint32(data[n:])
 	n += 4
 	p.ExperimenterData = make([]uint32, 0)
-	for n < int(p.Length) {
+	for n + 3 < int(p.Length) {
 		p.ExperimenterData = append(p.ExperimenterData, binary.BigEndian.Uint32(data[n:]))
 		n += 4
 	}
@@ -1978,7 +2044,7 @@ func (f *TableFeatures) UnmarshalBinary(data []byte) error {
 	}
 	n := 0
 	f.Length = binary.BigEndian.Uint16(data[n:])
-	if len(data) < int(f.Length) {
+	if len(data) < int(f.Length) || len(data) < 64 {
 		return fmt.Errorf("the []byte is too short to unmarshal a full TableFeatures message")
 	}
 	n += 2
@@ -2000,7 +2066,7 @@ func (f *TableFeatures) UnmarshalBinary(data []byte) error {
 	f.MaxEntries = binary.BigEndian.Uint32(data[n:])
 	n += 4
 	f.Properties = make([]util.Message, 0)
-	for n < int(f.Length) {
+	for n + 1 < int(f.Length) {
 		t := binary.BigEndian.Uint16(data[n:])
 		var p util.Message
 		switch t {
@@ -2153,6 +2219,9 @@ func (f *FlowDesc) MarshalBinary() (data []byte, err error) {
 
 func (f *FlowDesc) UnmarshalBinary(data []byte) (err error) {
 	var n uint16
+	if len(data) < 24 {
+		return errors.New("data too short to unmarshal flowDesc")
+	}
 	f.Length = binary.BigEndian.Uint16(data[n:])
 	n += 2
 	n += 2 // Pad
@@ -2232,6 +2301,9 @@ func (s *GroupMultipartRequest) MarshalBinary() (data []byte, err error) {
 }
 
 func (s *GroupMultipartRequest) UnmarshalBinary(data []byte) (err error) {
+	if len(data) < int(s.Len()) {
+		return errors.New("data too short to unmarshal GroupMultipartRequest")
+	}
 	s.GroupId = binary.BigEndian.Uint32(data)
 	return
 }
@@ -2306,6 +2378,9 @@ func (g *GroupStats) MarshalBinary() (data []byte, err error) {
 
 func (g *GroupStats) UnmarshalBinary(data []byte) (err error) {
 	var n uint16
+	if len(data) < 40 {
+		return errors.New("data too short to unmarshal GroupStats")
+	}
 	g.Length = binary.BigEndian.Uint16(data[n:])
 	n += 2
 	n += 2 // Pad
@@ -2370,6 +2445,9 @@ func (g *BucketCounter) MarshalBinary() (data []byte, err error) {
 
 func (g *BucketCounter) UnmarshalBinary(data []byte) (err error) {
 	var n uint16
+	if len(data) < int(g.Len()) {
+		return errors.New("data too short to unmarshal BucketCounter")
+	}
 
 	g.PacketCount = binary.BigEndian.Uint64(data[n:])
 	n += 8
@@ -2453,6 +2531,9 @@ func (g *GroupDesc) MarshalBinary() (data []byte, err error) {
 
 func (g *GroupDesc) UnmarshalBinary(data []byte) (err error) {
 	var n uint16
+	if len(data) < 16 {
+		return errors.New("data too short to unmarshal GroupDesc")
+	}
 	g.Length = binary.BigEndian.Uint16(data[n:])
 	n += 2
 	g.Type = data[n]
@@ -2476,7 +2557,7 @@ func (g *GroupDesc) UnmarshalBinary(data []byte) (err error) {
 		n += b.Len()
 	}
 
-	for n < g.Length {
+	for n + 1 < g.Length {
 		var p util.Message
 		switch binary.BigEndian.Uint16(data[n:]) {
 		case GPT_EXPERIMENTER:
@@ -2545,6 +2626,9 @@ func (g *GroupFeatures) MarshalBinary() (data []byte, err error) {
 
 func (g *GroupFeatures) UnmarshalBinary(data []byte) (err error) {
 	var n uint16
+	if len(data) < int(g.Len()) {
+		return errors.New("data too short to unmarshal GroupFeatures")
+	}
 
 	g.Types = binary.BigEndian.Uint32(data[n:])
 	n += 4
@@ -2586,6 +2670,9 @@ func (m *MeterMultipartRequest) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *MeterMultipartRequest) UnmarshalBinary(data []byte) (err error) {
+	if len(data) < int(m.Len()) {
+		return errors.New("data too short to unmarshal MeterMultipartRequest")
+	}
 	m.MeterId = binary.BigEndian.Uint32(data)
 	return
 }
@@ -2657,6 +2744,9 @@ func (m *MeterStats) MarshalBinary() (data []byte, err error) {
 
 func (m *MeterStats) UnmarshalBinary(data []byte) (err error) {
 	var n uint16
+	if len(data) < 40 {
+		return errors.New("data too short to unmarshal MeterStats")
+	}
 
 	m.MeterId = binary.BigEndian.Uint32(data[n:])
 	n += 4
@@ -2715,6 +2805,9 @@ func (m *MeterBandStats) MarshalBinary() (data []byte, err error) {
 
 func (m *MeterBandStats) UnmarshalBinary(data []byte) (err error) {
 	var n uint16
+	if len(data) < int(m.Len()) {
+		return errors.New("data too short to unmarshal MeterBandStats")
+	}
 
 	m.PacketBandCount = binary.BigEndian.Uint64(data[n:])
 	n += 8
@@ -2775,6 +2868,9 @@ func (m *MeterDesc) MarshalBinary() (data []byte, err error) {
 
 func (m *MeterDesc) UnmarshalBinary(data []byte) (err error) {
 	var n uint16
+	if len(data) < 8 {
+		return errors.New("data too short to unmarshal MeterDesc")
+	}
 
 	m.Length = binary.BigEndian.Uint16(data[n:])
 	n += 2
@@ -2783,7 +2879,7 @@ func (m *MeterDesc) UnmarshalBinary(data []byte) (err error) {
 	m.MeterId = binary.BigEndian.Uint32(data[n:])
 	n += 4
 
-	for n < m.Length {
+	for n + 1 < m.Length {
 		var p util.Message
 		switch binary.BigEndian.Uint16(data[n:]) {
 		case MBT_DROP:
@@ -2859,6 +2955,9 @@ func (m *MeterFeatures) MarshalBinary() (data []byte, err error) {
 
 func (m *MeterFeatures) UnmarshalBinary(data []byte) (err error) {
 	var n uint16
+	if len(data) < int(m.Len()) {
+		return errors.New("data too short to unmarshal MeterFeatures")
+	}
 
 	m.MaxMeter = binary.BigEndian.Uint32(data[n:])
 	n += 4
@@ -2899,6 +2998,9 @@ func (p *PortMultipartRequest) MarshalBinary() (data []byte, err error) {
 }
 
 func (p *PortMultipartRequest) UnmarshalBinary(data []byte) (err error) {
+	if len(data) < int(p.Len()) {
+		return errors.New("data too short to unmarshal PortMultipartRequst")
+	}
 	p.PortNo = binary.BigEndian.Uint32(data)
 	return
 }
@@ -2953,6 +3055,9 @@ func (q *QueueDesc) MarshalBinary() (data []byte, err error) {
 
 func (q *QueueDesc) UnmarshalBinary(data []byte) (err error) {
 	var n uint16
+	if len(data) < 16 {
+		return errors.New("data too short to unmarshal QueueDesc")
+	}
 
 	q.PortNo = binary.BigEndian.Uint32(data[n:])
 	n += 4
@@ -2963,7 +3068,7 @@ func (q *QueueDesc) UnmarshalBinary(data []byte) (err error) {
 	n += 2
 	n += 6 // Pad
 
-	for n < q.Length {
+	for n + 1 < q.Length {
 		var p util.Message
 		switch binary.BigEndian.Uint16(data[n:]) {
 		case QDPT_MIN_RATE:
@@ -3045,6 +3150,9 @@ func (prop *QueueDescPropRate) MarshalBinary() (data []byte, err error) {
 
 func (prop *QueueDescPropRate) UnmarshalBinary(data []byte) (err error) {
 	var n uint16
+	if len(data) < int(prop.Len()) {
+		return errors.New("data too short to unmarshal QueueDescPropRate")
+	}
 	err = prop.Header.UnmarshalBinary(data[n:])
 	if err != nil {
 		return
@@ -3113,6 +3221,9 @@ func (mon *FlowMonitorRequest) MarshalBinary() (data []byte, err error) {
 
 func (mon *FlowMonitorRequest) UnmarshalBinary(data []byte) (err error) {
 	var n uint16
+	if len(data) < 16 {
+		return errors.New("data too short to unmarshal FlowMonitorRequest")
+	}
 	mon.MonitorId = binary.BigEndian.Uint32(data[n:])
 	n += 4
 	mon.OutPort = binary.BigEndian.Uint32(data[n:])
@@ -3190,6 +3301,9 @@ func (f *FlowUpdateHeader) MarshalBinary() (data []byte, err error) {
 
 func (f *FlowUpdateHeader) UnmarshalBinary(data []byte) (err error) {
 	var n uint16
+	if len(data) < int(f.Len()) {
+		return errors.New("data too short to unmarshal FlowUpdateHeader")
+	}
 	f.Length = binary.BigEndian.Uint16(data[n:])
 	n += 2
 	f.Event = binary.BigEndian.Uint16(data[n:])
@@ -3279,6 +3393,9 @@ func (full *FlowUpdateFull) MarshalBinary() (data []byte, err error) {
 
 func (full *FlowUpdateFull) UnmarshalBinary(data []byte) (err error) {
 	var n uint16
+	if len(data) < 24 {
+		return errors.New("data too short to unmarshal FlowUpdateFull")
+	}
 	err = full.FlowUpdateHeader.UnmarshalBinary(data)
 	if err != nil {
 		return
@@ -3348,6 +3465,9 @@ func (abbr *FlowUpdateAbbrev) MarshalBinary() (data []byte, err error) {
 }
 
 func (abbr *FlowUpdateAbbrev) UnmarshalBinary(data []byte) (err error) {
+	if len(data) < int(abbr.Len()) {
+		return errors.New("data too short to unmarshal FlowUpdateAbbrev")
+	}
 	err = abbr.FlowUpdateHeader.UnmarshalBinary(data)
 	if err != nil {
 		return
@@ -3387,6 +3507,9 @@ func (pause *FlowUpdatePaused) MarshalBinary() (data []byte, err error) {
 }
 
 func (pause *FlowUpdatePaused) UnmarshalBinary(data []byte) (err error) {
+	if len(data) < int(pause.Len()) {
+		return errors.New("data too short to unmarshal FlowUpdatePaused")
+	}
 	err = pause.FlowUpdateHeader.UnmarshalBinary(data)
 	if err != nil {
 		return
@@ -3435,11 +3558,14 @@ func (b *BundleFeaturesRequest) MarshalBinary() (data []byte, err error) {
 
 func (b *BundleFeaturesRequest) UnmarshalBinary(data []byte) (err error) {
 	var n uint16
+	if len(data) < 8 {
+		return errors.New("data too short to unmarshal BundleFeaturesRequest")
+	}
 	b.FeaturesRequestFlag = binary.BigEndian.Uint32(data[n:])
 	n += 4
 	n += 4 // Pad
 
-	for n < uint16(len(data)) {
+	for n + 1 < uint16(len(data)) {
 		var p util.Message
 		switch binary.BigEndian.Uint16(data[n:]) {
 		case TMPBF_TIME_CAPABILITY:
@@ -3540,6 +3666,9 @@ func (prop *BundleFeaturesPropTime) MarshalBinary() (data []byte, err error) {
 
 func (prop *BundleFeaturesPropTime) UnmarshalBinary(data []byte) (err error) {
 	var n uint16
+	if len(data) < int(prop.Len()) {
+		return errors.New("data too short to unmarshal BundleFeaturesPropTime")
+	}
 	err = prop.Header.UnmarshalBinary(data[n:])
 	if err != nil {
 		klog.V(4).Infof("Failed to unmarshal BundleFeaturesPropTime's Header: err = %v data = %v", err, data[n:])
@@ -3622,11 +3751,14 @@ func (b *BundleFeatures) MarshalBinary() (data []byte, err error) {
 
 func (b *BundleFeatures) UnmarshalBinary(data []byte) (err error) {
 	var n uint16
+	if len(data) < 8 {
+		return errors.New("data too short to unmarshal BundleFeatures")
+	}
 	b.Capabilities = binary.BigEndian.Uint16(data[n:])
 	n += 2
 	n += 6 // Pad
 
-	for n < uint16(len(data)) {
+	for n + 1 < uint16(len(data)) {
 		var p util.Message
 		switch binary.BigEndian.Uint16(data[n:]) {
 		case TMPBF_TIME_CAPABILITY:

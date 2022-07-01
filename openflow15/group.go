@@ -141,6 +141,10 @@ func (g *GroupMod) UnmarshalBinary(data []byte) (err error) {
 	}
 	n += g.Header.Len()
 
+	if len(data) < int(g.Header.Length) || len(data) < int(n) + 12 {
+		return errors.New("data too short to unmarshal GroupMod")
+	}
+
 	g.Command = binary.BigEndian.Uint16(data[n:])
 	n += 2
 	g.Type = data[n]
@@ -166,7 +170,7 @@ func (g *GroupMod) UnmarshalBinary(data []byte) (err error) {
 		n += bkt.Len()
 	}
 
-	for n < g.Header.Length {
+	for n + 1 < g.Header.Length {
 		var p util.Message
 		switch binary.BigEndian.Uint16(data[n:]) {
 		case GPT_EXPERIMENTER:
@@ -278,6 +282,9 @@ func (b *Bucket) MarshalBinary() (data []byte, err error) {
 
 func (b *Bucket) UnmarshalBinary(data []byte) (err error) {
 	var n uint16
+	if len(data) < 8 {
+		return errors.New("data too short to unmarshal Bucket")
+	}
 	b.Length = binary.BigEndian.Uint16(data[n:])
 	n += 2
 	b.ActionArrayLen = binary.BigEndian.Uint16(data[n:])
@@ -295,7 +302,7 @@ func (b *Bucket) UnmarshalBinary(data []byte) (err error) {
 		n += a.Len()
 	}
 
-	for n < b.Length {
+	for n + 1 < b.Length {
 		var p util.Message
 		switch binary.BigEndian.Uint16(data[n:]) {
 		case GBPT_WEIGHT:
@@ -364,6 +371,10 @@ func (prop *GroupBucketPropWeight) UnmarshalBinary(data []byte) (err error) {
 	}
 	n = prop.Header.Len()
 
+	if len(data) < int(prop.Header.Length) || len(data) < int(n) + 4  {
+		return errors.New("data too short to unmarshal GroupBucketPropWeight")
+	}
+
 	prop.Weight = binary.BigEndian.Uint16(data[n:])
 
 	return
@@ -420,6 +431,10 @@ func (prop *GroupBucketPropWatch) UnmarshalBinary(data []byte) (err error) {
 		return
 	}
 	n = prop.Header.Len()
+
+	if len(data) < int(prop.Header.Length) || len(data) < int(n) + 4 {
+		return errors.New("data too short to unmarshal GroupBucketPropWatch")
+	}
 
 	prop.Watch = binary.BigEndian.Uint32(data[n:])
 

@@ -2,6 +2,7 @@ package openflow15
 
 import (
 	"encoding/binary"
+	"errors"
 
 	"k8s.io/klog/v2"
 
@@ -135,6 +136,10 @@ func (f *FlowMod) UnmarshalBinary(data []byte) error {
 		return err
 	}
 	n += int(f.Header.Len())
+
+	if len(data) < int(f.Header.Length) || len(data) < n + 40 {
+		return errors.New("data too short to unmarshal FlowMod")
+	}
 
 	f.Cookie = binary.BigEndian.Uint64(data[n:])
 	n += 8
@@ -285,6 +290,10 @@ func (f *FlowRemoved) UnmarshalBinary(data []byte) error {
 		return err
 	}
 	n += int(f.Header.Len())
+
+	if len(data) < int(f.Header.Length) || len(data) < n + 16 {
+		return errors.New("data too short to unmarshal FlowRemoved")
+	}
 
 	f.TableId = data[n]
 	n += 1

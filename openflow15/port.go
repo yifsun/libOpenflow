@@ -84,6 +84,9 @@ func (p *Port) MarshalBinary() (data []byte, err error) {
 }
 
 func (p *Port) UnmarshalBinary(data []byte) (err error) {
+	if len(data) < 40 {
+		return errors.New("data too short to unmarshal Port")
+	}
 	p.PortNo = binary.BigEndian.Uint32(data)
 	var n uint16 = 4
 	p.Length = binary.BigEndian.Uint16(data[n:])
@@ -99,7 +102,10 @@ func (p *Port) UnmarshalBinary(data []byte) (err error) {
 	n += 4
 	p.State = binary.BigEndian.Uint32(data[n:])
 	n += 4
-	for n < p.Length {
+	if len(data) < int(p.Length) {
+		return errors.New("data too short to unmarshal Port Properties")
+	}
+	for n + 1 < p.Length {
 		var prop util.Message
 		switch binary.BigEndian.Uint16(data[n:]) {
 		case PDPT_ETHERNET:
@@ -189,6 +195,9 @@ func (prop *PortDescPropEthernet) UnmarshalBinary(data []byte) (err error) {
 		return
 	}
 	n += prop.Header.Len()
+	if len(data) < int(prop.Header.Length) || len(data) < int(n) + 28 {
+		return errors.New("data too short to unmarshal PortDescPropEthernet")
+	}
 	n += 4 // Pad
 	prop.Curr = binary.BigEndian.Uint32(data[n:])
 	n += 4
@@ -281,6 +290,9 @@ func (prop *PortDescPropOptical) UnmarshalBinary(data []byte) (err error) {
 		return
 	}
 	n += prop.Header.Len()
+	if len(data) < int(prop.Header.Length) || len(data) < int(n) + 36 {
+		return errors.New("data too short to unmarshal PortDescPropOptical")
+	}
 	n += 4 // Pad
 	prop.Supported = binary.BigEndian.Uint32(data[n:])
 	n += 4
@@ -348,8 +360,11 @@ func (prop *PortDescPropOxm) UnmarshalBinary(data []byte) (err error) {
 		return
 	}
 	n += prop.Header.Len()
+	if len(data) < int(prop.Header.Length) || len(data) < int(n) + 4 {
+		return errors.New("data too short to unmarshal PortDescPropOxm")
+	}
 	n += 4 // Pad
-	for n < prop.Header.Length {
+	for n + 3 < prop.Header.Length {
 		oxm := binary.BigEndian.Uint32(data[n:])
 		prop.OxmIds = append(prop.OxmIds, oxm)
 		n += 4
@@ -401,8 +416,11 @@ func (prop *PortDescPropRecirculate) UnmarshalBinary(data []byte) (err error) {
 		return
 	}
 	n += prop.Header.Len()
+	if len(data) < int(prop.Header.Length) || len(data) < int(n) + 4 {
+		return errors.New("data too short to unmarshal PortDescPropRecirculate")
+	}
 	n += 4 // Pad
-	for n < prop.Header.Length {
+	for n + 3 < prop.Header.Length {
 		p := binary.BigEndian.Uint32(data[n:])
 		prop.PortNos = append(prop.PortNos, p)
 		n += 4
@@ -483,6 +501,10 @@ func (p *PortMod) UnmarshalBinary(data []byte) (err error) {
 	}
 	n := p.Header.Len()
 
+	if len(data) < int(p.Header.Length) || len(data) < int(n) + 18 {
+		return errors.New("data too short to unmarshal PortMod")
+	}
+
 	p.PortNo = binary.BigEndian.Uint32(data[n:])
 	n += 4
 	copy(p.pad, data[n:n+4])
@@ -496,7 +518,7 @@ func (p *PortMod) UnmarshalBinary(data []byte) (err error) {
 	p.Mask = binary.BigEndian.Uint32(data[n:])
 	n += 4
 
-	for n < p.Length {
+	for n + 1 < p.Length {
 		var prop util.Message
 		switch binary.BigEndian.Uint16(data[n:]) {
 		case PMPT_ETHERNET:
@@ -628,6 +650,9 @@ func (prop *PortModPropEthernet) UnmarshalBinary(data []byte) (err error) {
 		return
 	}
 	n = prop.Header.Len()
+	if len(data) < int(prop.Header.Length) || len(data) < int(n) + 4 {
+		return errors.New("data too short to unmarshal PortModPropEthernet")
+	}
 
 	prop.Advertise = binary.BigEndian.Uint32(data[n:])
 
@@ -691,6 +716,10 @@ func (prop *PortModPropOptical) UnmarshalBinary(data []byte) (err error) {
 		return
 	}
 	n = prop.Header.Len()
+
+	if len(data) < int(prop.Header.Length) || len(data) < int(n) + 20 {
+		return errors.New("data too short to unmarshal PortModPropOptical")
+	}
 
 	prop.Configure = binary.BigEndian.Uint32(data[n:])
 	n += 4
@@ -758,6 +787,10 @@ func (s *PortStatus) UnmarshalBinary(data []byte) error {
 		return err
 	}
 	n := int(s.Header.Len())
+
+	if len(data) < int(s.Header.Length) || len(data) < int(n) + 8 {
+		return errors.New("data too short to unmarshal PortStatus")
+	}
 
 	s.Reason = data[n]
 	n += 1

@@ -53,12 +53,13 @@ func (s *Stats) MarshalBinary() (data []byte, err error) {
 }
 
 func (s *Stats) UnmarshalBinary(data []byte) (err error) {
-	klog.V(4).Infof("Stats Data: %x", data)
+	if len(data) < 4 {
+		return errors.New("data too short to unmarshal Stats")
+	}
 	n := 2 // 2 bytes Reserved
 	s.Length = binary.BigEndian.Uint16(data[n:])
 	n += 2
-	klog.V(4).Infof("Stats Length: %d", s.Length)
-	for n < int(s.Length) {
+	for n + 2 < int(s.Length) {
 		var f util.Message
 		klog.V(4).Infof("Stats Field: %d", data[n+2]>>1)
 		switch data[n+2] >> 1 {
@@ -143,6 +144,9 @@ func (h *OXSStatHeader) MarshalBinary() (data []byte, err error) {
 }
 
 func (h *OXSStatHeader) UnmarshalBinary(data []byte) (err error) {
+	if len(data) < int(h.Len()) {
+		return errors.New("data too short to unmarshal OXSStatHeader")
+	}
 	h.Class = binary.BigEndian.Uint16(data[0:])
 	h.Field = data[2] >> 1
 	h.Length = data[3]
@@ -188,6 +192,9 @@ func (f *TimeStatField) UnmarshalBinary(data []byte) (err error) {
 	}
 	n := f.Header.Len()
 	klog.V(4).Info("Header Len: %d", n)
+	if len(data) < int(f.Header.Length) || len(data) < int(n) + 8 {
+		return errors.New("data too short to unmarshal TimeStatField")
+	}
 	f.Sec = binary.BigEndian.Uint32(data[n:])
 	n += 4
 	f.NSec = binary.BigEndian.Uint32(data[n:])
@@ -247,6 +254,10 @@ func (f *FlowCountStatField) UnmarshalBinary(data []byte) (err error) {
 	}
 	n := f.Header.Len()
 
+	if len(data) < int(f.Header.Length) || len(data) < int(n) + 4 {
+		return errors.New("data too short to unmarshal FlowCountStatField")
+	}
+
 	f.Count = binary.BigEndian.Uint32(data[n:])
 	n += 4
 	return
@@ -293,6 +304,10 @@ func (f *PBCountStatField) UnmarshalBinary(data []byte) (err error) {
 		return
 	}
 	n := f.Header.Len()
+
+	if len(data) < int(f.Header.Length) || len(data) < int(n) + 8 {
+		return errors.New("data too short to unmarshal PBCountStatField")
+	}
 
 	f.Count = binary.BigEndian.Uint64(data[n:])
 	n += 8

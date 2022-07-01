@@ -4,6 +4,7 @@ package openflow15
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
 
 	"k8s.io/klog/v2"
@@ -81,6 +82,9 @@ func (m *MeterBandHeader) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *MeterBandHeader) UnmarshalBinary(data []byte) error {
+	if len(data) < int(m.Len()) {
+		return errors.New("data too short to unmarshal MeterBandHeader")
+	}
 	n := 0
 	m.Type = binary.BigEndian.Uint16(data[n:])
 	n += 2
@@ -173,6 +177,9 @@ func (m *MeterBandDSCP) UnmarshalBinary(data []byte) error {
 		return err
 	}
 	n += int(m.MeterBandHeader.Len())
+	if len(data) < n + 1 {
+		return errors.New("data too short to unmarshal MeterBandDSCP")
+	}
 	m.PrecLevel = data[n]
 
 	return nil
@@ -207,6 +214,9 @@ func (m *MeterBandExperimenter) UnmarshalBinary(data []byte) error {
 		return err
 	}
 	n += int(m.MeterBandHeader.Len())
+	if len(data) < n + 4 {
+		return errors.New("data too short to unmarshal MeterBandExperimenter")
+	}
 	m.Experimenter = binary.BigEndian.Uint32(data[n:])
 
 	return nil
@@ -289,6 +299,10 @@ func (m *MeterMod) UnmarshalBinary(data []byte) error {
 	}
 	n += int(m.Header.Len())
 
+	if len(data) < int(m.Header.Length) || len(data) < n + 8 {
+		return errors.New("data too short to unmarshal MeterMod")
+	}
+
 	m.Command = binary.BigEndian.Uint16(data[n:])
 	n += 2
 	m.Flags = binary.BigEndian.Uint16(data[n:])
@@ -312,11 +326,17 @@ func (m *MeterMod) UnmarshalBinary(data []byte) error {
 		case MBT_DSCP_REMARK:
 			mbDscp := new(MeterBandDSCP)
 			mbDscp.MeterBandHeader = *mbh
+			if len(data) < n {
+				return errors.New("data too short to unmarshal MBT_DSCP_REMARK in MeterMod")
+			}
 			mbDscp.PrecLevel = data[n]
 			m.MeterBands = append(m.MeterBands, mbDscp)
 		case MBT_EXPERIMENTER:
 			mbExp := new(MeterBandExperimenter)
 			mbExp.MeterBandHeader = *mbh
+			if len(data) < n + 4 {
+				return errors.New("data too short to unmarshal MBT_EXPERIMENTER in MeterMod")
+			}
 			mbExp.Experimenter = binary.BigEndian.Uint32(data[n:])
 			m.MeterBands = append(m.MeterBands, mbExp)
 		default:

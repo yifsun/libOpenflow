@@ -69,6 +69,9 @@ func (p *PacketInFormat) MarshalBinary() (data []byte, err error) {
 }
 
 func (p *PacketInFormat) UnmarshalBinary(data []byte) error {
+	if len(data) < 4 {
+		return errors.New("data too short to unmarshal PacketInFormat")
+	}
 	n := 0
 	p.Spif = binary.BigEndian.Uint32(data[n:])
 	return nil
@@ -256,6 +259,9 @@ func (t *TLVTableReply) MarshalBinary() (data []byte, err error) {
 }
 
 func (t *TLVTableReply) UnmarshalBinary(data []byte) error {
+	if len(data) < 16 {
+		return errors.New("data too short to unmarshal TLVTableReply")
+	}
 	n := 0
 	t.MaxSpace = binary.BigEndian.Uint32(data[n:])
 	n += 4
@@ -331,10 +337,10 @@ func (p *ContinuationPropBridge) UnmarshalBinary(data []byte) error {
 	if err := p.PropHeader.UnmarshalBinary(data[n:]); err != nil {
 		return err
 	}
-	if len(data) < int(p.Length) {
+	n += int(p.PropHeader.Len())
+	if len(data) < int(p.Length) || len(data) < n + 16 {
 		return errors.New("the []byte is too short to unmarshal a full ContinuationPropBridge message")
 	}
-	n += int(p.PropHeader.Len())
 
 	for i := 0; i < 4; i++ {
 		p.Bridge[i] = binary.BigEndian.Uint32(data[n:])
@@ -424,10 +430,10 @@ func (p *ContinuationPropMirrors) UnmarshalBinary(data []byte) error {
 	if err := p.PropHeader.UnmarshalBinary(data[n:]); err != nil {
 		return err
 	}
-	if len(data) < int(p.Length) {
+	n += int(p.PropHeader.Len())
+	if len(data) < int(p.Length) || len(data) < n + 4 {
 		return errors.New("the []byte is too short to unmarshal a full ContinuationPropMirrors message")
 	}
-	n += int(p.PropHeader.Len())
 
 	p.Mirrors = binary.BigEndian.Uint32(data[n:])
 	return nil
@@ -505,10 +511,10 @@ func (p *ContinuationPropTableID) UnmarshalBinary(data []byte) error {
 	if err := p.PropHeader.UnmarshalBinary(data[n:]); err != nil {
 		return err
 	}
-	if len(data) < int(p.Length) {
+	n += int(p.PropHeader.Len())
+	if len(data) < int(p.Length) || len(data) < n + 4 {
 		return errors.New("the []byte is too short to unmarshal a full ContinuationPropTableID message")
 	}
-	n += int(p.PropHeader.Len())
 
 	p.TableID = data[n]
 	return nil
@@ -548,10 +554,10 @@ func (p *ContinuationPropCookie) UnmarshalBinary(data []byte) error {
 	if err := p.PropHeader.UnmarshalBinary(data[n:]); err != nil {
 		return err
 	}
-	if len(data) < int(p.Length) {
+	n += int(p.PropHeader.Len())
+	if len(data) < int(p.Length) || len(data) < n + 8 {
 		return errors.New("the []byte is too short to unmarshal a full ContinuationPropCookie message")
 	}
-	n += int(p.PropHeader.Len())
 
 	p.Cookie = binary.BigEndian.Uint64(data[n:])
 	return nil
@@ -718,10 +724,10 @@ func (p *ContinuationPropOdpPort) UnmarshalBinary(data []byte) error {
 	if err := p.PropHeader.UnmarshalBinary(data[n:]); err != nil {
 		return err
 	}
-	if len(data) < int(p.Length) {
+	n += int(p.PropHeader.Len())
+	if len(data) < int(p.Length) || len(data) < n + 4 {
 		return errors.New("the []byte is too short to unmarshal a full ContinuationPropOdpPort message")
 	}
-	n += int(p.PropHeader.Len())
 
 	p.OdpPort = binary.BigEndian.Uint32(data[n:])
 	return nil
@@ -729,6 +735,9 @@ func (p *ContinuationPropOdpPort) UnmarshalBinary(data []byte) error {
 
 // Decode Continuation Property types.
 func DecodeContinuationProp(data []byte) (Property, error) {
+	if len(data) < 2 {
+		return nil, errors.New("data too short to decode ContinuationProp")
+	}
 	t := binary.BigEndian.Uint16(data[:2])
 	var p Property
 	switch t {
@@ -866,10 +875,10 @@ func (p *PacketIn2PropFullLen) UnmarshalBinary(data []byte) error {
 	if err := p.PropHeader.UnmarshalBinary(data[n:]); err != nil {
 		return err
 	}
-	if len(data) < int(p.Length) {
+	n += int(p.PropHeader.Len())
+	if len(data) < int(p.Length) || len(data) < n + 4 {
 		return errors.New("the []byte is too short to unmarshal a full PacketIn2PropFullLen message")
 	}
-	n += int(p.PropHeader.Len())
 
 	p.FullLen = binary.BigEndian.Uint32(data[n:])
 	return nil
@@ -908,10 +917,10 @@ func (p *PacketIn2PropBufferID) UnmarshalBinary(data []byte) error {
 	if err := p.PropHeader.UnmarshalBinary(data[n:]); err != nil {
 		return err
 	}
-	if len(data) < int(p.Length) {
+	n += int(p.PropHeader.Len())
+	if len(data) < int(p.Length) || len(data) < n + 4 {
 		return errors.New("the []byte is too short to unmarshal a full PacketIn2PropBufferID message")
 	}
-	n += int(p.PropHeader.Len())
 
 	p.BufferID = binary.BigEndian.Uint32(data[n:])
 	return nil
@@ -951,10 +960,10 @@ func (p *PacketIn2PropTableID) UnmarshalBinary(data []byte) error {
 	if err := p.PropHeader.UnmarshalBinary(data[n:]); err != nil {
 		return err
 	}
-	if len(data) < int(p.Length) {
+	n += int(p.PropHeader.Len())
+	if len(data) < int(p.Length) || len(data) < n + 4 {
 		return errors.New("the []byte is too short to unmarshal a full PacketIn2PropTableID message")
 	}
-	n += int(p.PropHeader.Len())
 
 	p.TableID = data[n]
 	return nil
@@ -995,10 +1004,10 @@ func (p *PacketIn2PropCookie) UnmarshalBinary(data []byte) error {
 	if err := p.PropHeader.UnmarshalBinary(data[n:]); err != nil {
 		return err
 	}
-	if len(data) < int(p.Length) {
+	n += int(p.PropHeader.Len())
+	if len(data) < int(p.Length) || len(data) < int(p.Len()) {
 		return errors.New("the []byte is too short to unmarshal a full PacketIn2PropCookie message")
 	}
-	n += int(p.PropHeader.Len())
 	n += 4
 
 	p.Cookie = binary.BigEndian.Uint64(data[n:])
@@ -1039,10 +1048,10 @@ func (p *PacketIn2PropReason) UnmarshalBinary(data []byte) error {
 	if err := p.PropHeader.UnmarshalBinary(data[n:]); err != nil {
 		return err
 	}
-	if len(data) < int(p.Length) {
+	n += int(p.PropHeader.Len())
+	if len(data) < int(p.Length) || len(data) < n + 4 {
 		return errors.New("the []byte is too short to unmarshal a full PacketIn2PropReason message")
 	}
-	n += int(p.PropHeader.Len())
 
 	p.Reason = data[n]
 	return nil
@@ -1205,6 +1214,9 @@ func (p *PacketIn2PropContinuation) UnmarshalBinary(data []byte) error {
 
 // Decode PacketIn2 Property types.
 func DecodePacketIn2Prop(data []byte) (Property, error) {
+	if len(data) < 2 {
+		return nil, errors.New("data too short to decode PacketIn2Prop")
+	}
 	t := binary.BigEndian.Uint16(data[:2])
 	var p Property
 	switch t {

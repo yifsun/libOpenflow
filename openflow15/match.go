@@ -82,7 +82,9 @@ func (m *Match) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *Match) UnmarshalBinary(data []byte) error {
-
+	if len(data) < 4 {
+		return errors.New("data too short to unmarshal Match")
+	}
 	n := 0
 	m.Type = binary.BigEndian.Uint16(data[n:])
 	n += 2
@@ -159,6 +161,9 @@ func (m *MatchField) MarshalBinary() (data []byte, err error) {
 func (m *MatchField) UnmarshalBinary(data []byte) error {
 	var n uint16
 	var err error
+	if len(data) < 4 {
+		return errors.New("data too short to unmarshal MatchField")
+	}
 	m.Class = binary.BigEndian.Uint16(data[n:])
 	n += 2
 
@@ -175,6 +180,9 @@ func (m *MatchField) UnmarshalBinary(data []byte) error {
 	n += 1
 
 	if m.Class == OXM_CLASS_EXPERIMENTER {
+		if len(data) < int(n) + 4 {
+			return errors.New("data too short to unmarshal MatchField's ExperimenterID")
+		}
 		experimenterID := binary.BigEndian.Uint32(data[n:])
 		if experimenterID == ONF_EXPERIMENTER_ID {
 			n += 4
@@ -191,6 +199,9 @@ func (m *MatchField) UnmarshalBinary(data []byte) error {
 	n += m.Value.Len()
 
 	if m.HasMask {
+		if len(data) < int(n) {
+			return errors.New("data too short to unmarshal MatchField's Mask")
+		}
 		if m.Mask, err = DecodeMatchField(m.Class, m.Field, m.Length, m.HasMask, data[n:]); err != nil {
 			klog.V(4).Infof("Failed to decode MatchField mask: err = %v data = %v", err, data[n:])
 			return err
@@ -295,6 +306,9 @@ func (o *OxmId) MarshalBinary() (data []byte, err error) {
 func (o *OxmId) UnmarshalBinary(data []byte) error {
 	var n uint16
 	var err error
+	if len(data) < 4 {
+		return errors.New("data too short to unmarshal OxmId")
+	}
 	o.Class = binary.BigEndian.Uint16(data[n:])
 	n += 2
 
@@ -311,6 +325,9 @@ func (o *OxmId) UnmarshalBinary(data []byte) error {
 	n += 1
 
 	if o.Class == OXM_CLASS_EXPERIMENTER {
+		if len(data) < int(n) + 4 {
+			return errors.New("data too short to unmarshal OxmId's Class")
+		}
 		experimenterID := binary.BigEndian.Uint32(data[n:])
 		if experimenterID == ONF_EXPERIMENTER_ID {
 			n += 4
@@ -788,6 +805,9 @@ func (m *InPortField) MarshalBinary() (data []byte, err error) {
 	return
 }
 func (m *InPortField) UnmarshalBinary(data []byte) error {
+	if len(data) < int(m.Len()) {
+		return errors.New("data too short to unmarshal InPortField")
+	}
 	m.InPort = binary.BigEndian.Uint32(data)
 	return nil
 }
@@ -822,6 +842,10 @@ func (m *InPhyPortField) MarshalBinary() (data []byte, err error) {
 	return
 }
 func (m *InPhyPortField) UnmarshalBinary(data []byte) error {
+	if len(data) < int(m.Len()) {
+		return errors.New("data too short to unmarshal InPhyPortField")
+	}
+
 	m.InPhyPort = binary.BigEndian.Uint32(data)
 	return nil
 }
@@ -856,6 +880,10 @@ func (m *EthDstField) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *EthDstField) UnmarshalBinary(data []byte) error {
+	if len(data) < int(m.Len()) {
+		return errors.New("data too short to unmarshal EthDstField")
+	}
+
 	copy(m.EthDst, data)
 	return nil
 }
@@ -899,6 +927,9 @@ func (m *EthSrcField) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *EthSrcField) UnmarshalBinary(data []byte) error {
+	if len(data) < int(m.Len()) {
+		return errors.New("data too short to unmarshal EthSrcField")
+	}
 	copy(m.EthSrc, data)
 	return nil
 }
@@ -942,6 +973,9 @@ func (m *EthTypeField) MarshalBinary() (data []byte, err error) {
 	return
 }
 func (m *EthTypeField) UnmarshalBinary(data []byte) error {
+	if len(data) < int(m.Len()) {
+		return errors.New("data too short to unmarshal EthTypeField")
+	}
 	m.EthType = binary.BigEndian.Uint16(data)
 	return nil
 }
@@ -979,6 +1013,9 @@ func (m *VlanIdField) MarshalBinary() (data []byte, err error) {
 	return
 }
 func (m *VlanIdField) UnmarshalBinary(data []byte) error {
+	if len(data) < int(m.Len()) {
+		return errors.New("data too short to unmarshal VlanIdField")
+	}
 	m.VlanId = binary.BigEndian.Uint16(data)
 	return nil
 }
@@ -1020,6 +1057,9 @@ func (m *VlanPcpField) MarshalBinary() (data []byte, err error) {
 	return
 }
 func (m *VlanPcpField) UnmarshalBinary(data []byte) (err error) {
+	if len(data) < int(m.Len()) {
+		return errors.New("data too short to unmarshal VlanPcpField")
+	}
 	m.VlanPcp = data[0]
 	return
 }
@@ -1055,6 +1095,9 @@ func (m *MplsLabelField) MarshalBinary() (data []byte, err error) {
 	return
 }
 func (m *MplsLabelField) UnmarshalBinary(data []byte) error {
+	if len(data) < int(m.Len()) {
+		return errors.New("data too short to unmarshal MplsLabelField")
+	}
 	m.MplsLabel = binary.BigEndian.Uint32(data)
 	return nil
 }
@@ -1089,6 +1132,9 @@ func (m *MplsTcField) MarshalBinary() (data []byte, err error) {
 	return
 }
 func (m *MplsTcField) UnmarshalBinary(data []byte) (err error) {
+	if len(data) < int(m.Len()) {
+		return errors.New("data too short to unmarshal MplsTcField")
+	}
 	m.MplsTc = data[0]
 	return
 }
@@ -1123,6 +1169,9 @@ func (m *MplsBosField) MarshalBinary() (data []byte, err error) {
 	return
 }
 func (m *MplsBosField) UnmarshalBinary(data []byte) error {
+	if len(data) < int(m.Len()) {
+		return errors.New("data too short to unmarshal MplsBosField")
+	}
 	m.MplsBos = data[0]
 	return nil
 }
@@ -1156,6 +1205,9 @@ func (m *Ipv4SrcField) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *Ipv4SrcField) UnmarshalBinary(data []byte) error {
+	if len(data) < int(m.Len()) {
+		return errors.New("data too short to unmarshal Ipv4SrcField")
+	}
 	m.Ipv4Src = net.IPv4(data[0], data[1], data[2], data[3])
 	return nil
 }
@@ -1199,6 +1251,9 @@ func (m *Ipv4DstField) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *Ipv4DstField) UnmarshalBinary(data []byte) error {
+	if len(data) < int(m.Len()) {
+		return errors.New("data too short to unmarshal Ipv4DstField")
+	}
 	m.Ipv4Dst = net.IPv4(data[0], data[1], data[2], data[3])
 	return nil
 }
@@ -1242,6 +1297,9 @@ func (m *Ipv6SrcField) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *Ipv6SrcField) UnmarshalBinary(data []byte) error {
+	if len(data) < int(m.Len()) {
+		return errors.New("data too short to unmarshal Ipv6SrcField")
+	}
 	m.Ipv6Src = make([]byte, 16)
 	copy(m.Ipv6Src, data)
 	return nil
@@ -1332,6 +1390,9 @@ func (m *Ipv6DstField) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *Ipv6DstField) UnmarshalBinary(data []byte) error {
+	if len(data) < int(m.Len()) {
+		return errors.New("data too short to unmarshal Ipv6DstField")
+	}
 	m.Ipv6Dst = make([]byte, 16)
 	copy(m.Ipv6Dst, data)
 	return nil
@@ -1376,6 +1437,9 @@ func (m *IpEcnField) MarshalBinary() (data []byte, err error) {
 	return
 }
 func (m *IpEcnField) UnmarshalBinary(data []byte) (err error) {
+	if len(data) < int(m.Len()) {
+		return errors.New("data too short to unmarshal IpEcnField")
+	}
 	m.IpEcn = data[0]
 	return
 }
@@ -1409,6 +1473,9 @@ func (m *IpProtoField) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *IpProtoField) UnmarshalBinary(data []byte) error {
+	if len(data) < int(m.Len()) {
+		return errors.New("data too short to unmarshal IpProtoField")
+	}
 	m.Protocol = data[0]
 	return nil
 }
@@ -1443,6 +1510,9 @@ func (m *IpDscpField) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *IpDscpField) UnmarshalBinary(data []byte) error {
+	if len(data) < int(m.Len()) {
+		return errors.New("data too short to unmarshal IpDscpField")
+	}
 	m.Dscp = data[0]
 	return nil
 }
@@ -1532,6 +1602,9 @@ func (m *TunnelIdField) MarshalBinary() (data []byte, err error) {
 	return
 }
 func (m *TunnelIdField) UnmarshalBinary(data []byte) error {
+	if len(data) < int(m.Len()) {
+		return errors.New("data too short to unmarshal TunnelIdField")
+	}
 	m.TunnelId = binary.BigEndian.Uint64(data)
 	return nil
 }
@@ -1566,6 +1639,9 @@ func (m *MetadataField) MarshalBinary() (data []byte, err error) {
 	return
 }
 func (m *MetadataField) UnmarshalBinary(data []byte) error {
+	if len(data) < int(m.Len()) {
+		return errors.New("data too short to unmarshal MetadataField")
+	}
 	m.Metadata = binary.BigEndian.Uint64(data)
 	return nil
 }
@@ -1609,6 +1685,9 @@ func (m *PortField) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *PortField) UnmarshalBinary(data []byte) error {
+	if len(data) < int(m.Len()) {
+		return errors.New("data too short to unmarshal PortField")
+	}
 	m.Port = binary.BigEndian.Uint16(data)
 	return nil
 }
@@ -1735,6 +1814,9 @@ func (m *TcpFlagsField) MarshalBinary() (data []byte, err error) {
 	return
 }
 func (m *TcpFlagsField) UnmarshalBinary(data []byte) error {
+	if len(data) < int(m.Len()) {
+		return errors.New("data too short to unmarshal TcpFlagsField")
+	}
 	m.TcpFlags = binary.BigEndian.Uint16(data)
 	return nil
 }
@@ -1778,6 +1860,9 @@ func (m *ArpOperField) MarshalBinary() (data []byte, err error) {
 	return
 }
 func (m *ArpOperField) UnmarshalBinary(data []byte) error {
+	if len(data) < int(m.Len()) {
+		return errors.New("data too short to unmarshal ArpOperField")
+	}
 	m.ArpOper = binary.BigEndian.Uint16(data)
 	return nil
 }
@@ -1812,6 +1897,9 @@ func (m *TunnelIpv4SrcField) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *TunnelIpv4SrcField) UnmarshalBinary(data []byte) error {
+	if len(data) < int(m.Len()) {
+		return errors.New("data too short to unmarshal TunnelIpv4SrcField")
+	}
 	m.TunnelIpv4Src = net.IPv4(data[0], data[1], data[2], data[3])
 	return nil
 }
@@ -1855,6 +1943,9 @@ func (m *TunnelIpv4DstField) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *TunnelIpv4DstField) UnmarshalBinary(data []byte) error {
+	if len(data) < int(m.Len()) {
+		return errors.New("data too short to unmarshal TunnelIpv4DstField")
+	}
 	m.TunnelIpv4Dst = net.IPv4(data[0], data[1], data[2], data[3])
 	return nil
 }
@@ -2110,6 +2201,9 @@ func (m *ActsetOutputField) MarshalBinary() (data []byte, err error) {
 	return
 }
 func (m *ActsetOutputField) UnmarshalBinary(data []byte) error {
+	if len(data) < int(m.Len()) {
+		return errors.New("data too short to unmarshal ActsetOutputField")
+	}
 	m.OutputPort = binary.BigEndian.Uint32(data)
 	return nil
 }
@@ -2190,6 +2284,9 @@ func (f *PacketTypeField) MarshalBinary() (data []byte, err error) {
 	return
 }
 func (f *PacketTypeField) UnmarshalBinary(data []byte) error {
+	if len(data) < int(f.Len()) {
+		return errors.New("data too short to unmarshal PacketTypeField")
+	}
 	f.Namespace = binary.BigEndian.Uint16(data[0:])
 	f.NsType = binary.BigEndian.Uint16(data[2:])
 	return nil

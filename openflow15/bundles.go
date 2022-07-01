@@ -216,6 +216,10 @@ func (b *BundleAdd) MarshalBinary() (data []byte, err error) {
 
 func (b *BundleAdd) UnmarshalBinary(data []byte) error {
 	var err error
+	if len(data) < 8 {
+		err = errors.New("data too short to unmarshal BundleAdd")
+		return err
+	}
 	n := 0
 	b.BundleID = binary.BigEndian.Uint32(data[n:])
 	n += 4
@@ -298,6 +302,9 @@ func (e *VendorError) UnmarshalBinary(data []byte) error {
 		return err
 	}
 	n += int(e.Header.Len())
+	if len(data) < int(e.Header.Length) || len(data) < n + 8 {
+		return errors.New("data too short to unmarshal VendorError")
+	}
 	e.Type = binary.BigEndian.Uint16(data[n:])
 	n += 2
 	e.Code = binary.BigEndian.Uint16(data[n:])

@@ -71,6 +71,9 @@ func (a *ActionHeader) UnmarshalBinary(data []byte) error {
 
 // Decode Action types.
 func DecodeAction(data []byte) (Action, error) {
+	if len(data) < 2 {
+		return nil, errors.New("Data too short for DecodeAction")
+	}
 	t := binary.BigEndian.Uint16(data[:2])
 	var a Action
 	var err error
@@ -242,7 +245,7 @@ func (a *ActionSetqueue) MarshalBinary() (data []byte, err error) {
 }
 
 func (a *ActionSetqueue) UnmarshalBinary(data []byte) error {
-	if len(data) != int(a.Len()) {
+	if len(data) < int(a.Len()) {
 		return errors.New("The []byte the wrong size to unmarshal an " +
 			"ActionEnqueue message.")
 	}
@@ -387,6 +390,9 @@ func (a *ActionPush) MarshalBinary() (data []byte, err error) {
 }
 
 func (a *ActionPush) UnmarshalBinary(data []byte) error {
+	if len(data) < int(a.Len()) {
+		return errors.New("data too short to unmarshal ActionPush")
+	}
 	err := a.ActionHeader.UnmarshalBinary(data[:4])
 	if err != nil {
 		return err
@@ -463,6 +469,9 @@ func (a *ActionPopMpls) MarshalBinary() (data []byte, err error) {
 }
 
 func (a *ActionPopMpls) UnmarshalBinary(data []byte) error {
+	if len(data) < int(a.Len()) {
+		return errors.New("data too short to unmarshal ActionPopMpls")
+	}
 	err := a.ActionHeader.UnmarshalBinary(data[:4])
 	if err != nil {
 		return err
@@ -512,6 +521,9 @@ func (a *ActionSetField) MarshalBinary() (data []byte, err error) {
 }
 
 func (a *ActionSetField) UnmarshalBinary(data []byte) error {
+	if len(data) < int(a.Len()) {
+		return errors.New("data too short to unmarshal ActionSetField")
+	}
 	n := 0
 	err := a.ActionHeader.UnmarshalBinary(data[n:])
 	if err != nil {
@@ -601,6 +613,9 @@ func (a *ActionCopyField) MarshalBinary() (data []byte, err error) {
 }
 
 func (a *ActionCopyField) UnmarshalBinary(data []byte) error {
+	if len(data) < int(a.Len()) {
+		return errors.New("data too short to unmarshal ActionCopyField")
+	}
 	var n uint16
 	err := a.ActionHeader.UnmarshalBinary(data[n:])
 	if err != nil {
@@ -668,6 +683,9 @@ func (a *ActionMeter) MarshalBinary() (data []byte, err error) {
 	return
 }
 func (a *ActionMeter) UnmarshalBinary(data []byte) error {
+	if len(data) < int(a.Len()) {
+		return errors.New("data too short to unmarshal ActionMeter")
+	}
 	n := 0
 	err := a.ActionHeader.UnmarshalBinary(data[n:])
 	if err != nil {
